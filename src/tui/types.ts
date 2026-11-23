@@ -13,22 +13,10 @@ export type Api = {
 
 export const fields = ["description", "model", "system"] as const satisfies readonly Field[]
 export const labels = { description: "description", model: "model", system: "system" } satisfies Record<Field, string>
-export const shortcuts = { description: "d", model: "m", system: "s" } satisfies Record<Field, string>
-export const sourceNotes = {
-  builtin: "Built-in agent. Saving a field writes an override to opencode.json.",
-  config: "Defined in opencode.json. Changes are saved immediately.",
-  runtime: "Registered at runtime by another plugin or config. Read-only here.",
-} satisfies Record<Entry["source"], string>
 export const NEW = ""
 export const MANUAL = "__manual__"
 export const editMode = "agents-edit"
 export const wideWidth = 100
-
-const sources = ["builtin", "config", "runtime"] as const
-
-export function badgeColor(theme: Theme, source: Entry["source"]) {
-  return theme.categorical[sources.indexOf(source) % theme.categorical.length][200]
-}
 
 export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)

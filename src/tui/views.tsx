@@ -1,8 +1,7 @@
 import { For, Show, createEffect, createSignal, untrack } from "solid-js"
 import { TextAttributes, type InputRenderable, type ScrollBoxRenderable, type TextareaRenderable } from "@opentui/core"
-import { fields, labels, NEW, shortcuts, sourceNotes, type Field } from "./types.ts"
+import { fields, labels, NEW, type Field } from "./types.ts"
 import { steps, type State, type Step } from "./state.ts"
-import { Badge } from "./ui.tsx"
 
 const pickerRows = 9
 const rowID = (id: string) => (id === NEW ? "agents-row-new" : `agents-row-${id}`)
@@ -48,9 +47,8 @@ function ListRow(props: { s: State, id: string }) {
   const [idWidth, setIdWidth] = createSignal(Array.from(props.id).length)
   const model = () => {
     const value = entry()?.disabled ? "disabled" : entry()?.source === "runtime" ? "read-only" : entry()?.agent.model ?? "default model"
-    const available = Math.max(0, width() - idWidth() - 1)
-    const short = value.length > available && value.includes("/") ? value.slice(value.indexOf("/") + 1) : value
-    return Array.from(short).slice(0, available).join("")
+    const available = Math.max(0, width() - idWidth() - 2)
+    return Array.from(value.slice(value.indexOf("/") + 1)).slice(0, available).join("")
   }
   createEffect(() => {
     if (active()) s.refs.list?.scrollChildIntoView(rowID(props.id))
@@ -59,6 +57,7 @@ function ListRow(props: { s: State, id: string }) {
     <box
       id={rowID(props.id)}
       flexDirection="row"
+      paddingRight={1}
       onSizeChange={function () { setWidth(this.width) }}
       backgroundColor={active() ? theme.background.action.primary.focused : undefined}
       onMouseUp={(event) => {
@@ -91,16 +90,16 @@ function Detail(props: { s: State, height: number }) {
   const s = props.s
   const entry = () => s.current()
   const source = () => entry()?.source ?? "runtime"
-  const badge = () => entry()?.builtin ? "builtin" : source()
   return (
     <box flexDirection="column" gap={1} height="100%">
       <box flexDirection="row" gap={2}>
         <text fg={s.theme.text.base} attributes={TextAttributes.BOLD} wrapMode="none">{s.selected()}</text>
-        <Badge theme={s.theme} source={badge()} />
         <Show when={entry()?.disabled}><text fg={s.theme.background.base} bg={s.theme.categorical[3 % s.theme.categorical.length][200]} wrapMode="none"> disabled </text></Show>
-        <text fg={s.theme.text.muted} wrapMode="none" truncate>mode {entry()?.agent.mode ?? "unknown"} (read-only)</text>
+        <Show when={entry()?.agent.mode}><text fg={s.theme.text.muted} wrapMode="none" truncate>mode {entry()?.agent.mode}</text></Show>
       </box>
-      <text fg={s.theme.text.muted} wrapMode="word">{entry()?.builtin && source() === "config" ? "Built-in agent, overridden in opencode.json. Reset to default removes the override." : sourceNotes[badge()]}</text>
+      <Show when={source() === "runtime"}>
+        <text fg={s.theme.text.muted} wrapMode="word">Registered at runtime by another plugin. Read-only here.</text>
+      </Show>
       <scrollbox ref={(element: ScrollBoxRenderable) => (s.refs.detail = element)} flexGrow={1} height={0} contentOptions={{ minHeight: 0 }}>
         <box flexDirection="column">
           <For each={fields}>{(field, index) => <>
@@ -143,10 +142,9 @@ function FieldBlock(props: { s: State, field: Field }) {
         <text fg={active() ? theme.hue.accent[500] : theme.text.base} attributes={TextAttributes.BOLD} wrapMode="none">
           {active() ? "▸ " : "  "}{labels[props.field]}
         </text>
-        <Show when={entry()?.overrides.includes(props.field)}>
+        <Show when={entry()?.builtin && entry()?.overrides.includes(props.field)}>
           <text fg={theme.text.muted} wrapMode="none">● override</text>
         </Show>
-        <text fg={theme.text.muted} wrapMode="none">[{shortcuts[props.field]}] edit</text>
         <Show when={props.field === "system" && s.canClearSystem() && !editing()}>
           <text
             fg={theme.hue.accent[500]}
