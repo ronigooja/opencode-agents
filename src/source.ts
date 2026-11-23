@@ -12,8 +12,8 @@ export function compose(configured: Record<string, Configured>, runtime: Runtime
     const builtin = builtins.has(id)
     const current = configured[id]
     const agent = runtimeAgents.get(id)
-    if (current) return [id, { editable: current.editable, source: "config" as const, builtin, agent: { ...agent, ...current.agent }, overrides: Object.keys(current.agent), fields: current.fields }]
-    if (builtin) return [id, { editable: true, source: "builtin" as const, builtin, agent: agent ?? {}, overrides: [], fields: [] }]
-    return [id, { editable: false, source: "runtime" as const, builtin, agent: agent ?? {}, overrides: [], fields: [] }]
+    if (current) return [id, { editable: current.editable, source: "config" as const, builtin, disabled: current.agent.disabled === true, agent: { ...agent, ...current.agent }, overrides: Object.keys(current.agent), fields: current.fields }]
+    if (builtin) return [id, { editable: true, source: "builtin" as const, builtin, disabled: false, agent: agent ?? {}, overrides: [], fields: [] }]
+    return [id, { editable: false, source: "runtime" as const, builtin, disabled: false, agent: agent ?? {}, overrides: [], fields: [] }]
   }))
 }

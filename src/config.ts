@@ -6,7 +6,7 @@ import { applyEdits, modify, parse, type ParseError } from "jsonc-parser"
 import { Agent } from "./contract.ts"
 
 const queues = new Map<string, Promise<void>>()
-const fields = ["mode", "description", "model", "system"] as const
+const fields = ["mode", "description", "model", "system", "disabled"] as const
 const options = { formattingOptions: { tabSize: 2, insertSpaces: true } }
 
 export async function configPath() {
@@ -77,7 +77,7 @@ function clean(agent: Agent) {
 
 function patch(text: string, id: string, agent: Agent) {
   return Object.entries(agent).reduce((current, [key, value]) => {
-    const item = value === "" ? undefined : value
+    const item = value === "" || (key === "disabled" && value === false) ? undefined : value
     return applyEdits(current, modify(current, ["agents", id, key], item, options))
   }, text)
 }

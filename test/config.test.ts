@@ -100,13 +100,35 @@ test("sources distinguish builtin, config and runtime agents", () => {
     { id: "plugin-agent", agent: { mode: "subagent" as const } },
   ]
   const entries = compose(configured, runtime)
-  assert.deepEqual(entries.build, { editable: true, source: "builtin", builtin: true, agent: { mode: "primary" }, overrides: [], fields: [] })
-  assert.deepEqual(entries.explore, { editable: true, source: "config", builtin: true, agent: { mode: "subagent", description: "runtime", model: "p/m" }, overrides: ["model"], fields: [] })
-  assert.deepEqual(entries.custom, { editable: true, source: "config", builtin: false, agent, overrides: ["mode", "description", "model"], fields: [] })
-  assert.deepEqual(entries["plugin-agent"], { editable: false, source: "runtime", builtin: false, agent: { mode: "subagent" }, overrides: [], fields: [] })
+  assert.deepEqual(entries.build, { editable: true, source: "builtin", builtin: true, disabled: false, agent: { mode: "primary" }, overrides: [], fields: [] })
+  assert.deepEqual(entries.explore, { editable: true, source: "config", builtin: true, disabled: false, agent: { mode: "subagent", description: "runtime", model: "p/m" }, overrides: ["model"], fields: [] })
+  assert.deepEqual(entries.custom, { editable: true, source: "config", builtin: false, disabled: false, agent, overrides: ["mode", "description", "model"], fields: [] })
+  assert.deepEqual(entries["plugin-agent"], { editable: false, source: "runtime", builtin: false, disabled: false, agent: { mode: "subagent" }, overrides: [], fields: [] })
 })
 
 test("unsupported config entries are config-sourced but read-only", () => {
   const entries = compose({ broken: { editable: false, agent: {}, fields: [] } }, [{ id: "broken", agent: { mode: "subagent" as const } }])
-  assert.deepEqual(entries.broken, { editable: false, source: "config", builtin: false, agent: { mode: "subagent" }, overrides: [], fields: [] })
+  assert.deepEqual(entries.broken, { editable: false, source: "config", builtin: false, disabled: false, agent: { mode: "subagent" }, overrides: [], fields: [] })
+})
+
+test("disabled round trip preserves comments and fields and composes missing builtins", async () => {
+  const dir = await mkdtemp(path.resolve("test", "fixture-"))
+  try {
+    const file = path.join(dir, "opencode.jsonc")
+    await writeFile(file, '{"agents":{"explore": {\n // retain\n "model":"p/m", "permissions": {"edit":"deny"}\n}}}')
+    await update(file, "explore", "edit", { disabled: true })
+    const configured = await list(file)
+    assert.equal(configured.explore.agent.disabled, true)
+    const entry = compose(configured, []).explore
+    assert.equal(entry.builtin, true)
+    assert.equal(entry.disabled, true)
+    await update(file, "explore", "edit", { disabled: false })
+    const content = await readFile(file, "utf8")
+    assert.match(content, /\/\/ retain/)
+    assert.match(content, /"permissions"/)
+    assert.match(content, /"model"\s*:\s*"p\/m"/)
+    assert.doesNotMatch(content, /"disabled"/)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
 })
