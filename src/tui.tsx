@@ -59,6 +59,6 @@ export default Plugin.define({
         ctx.ui.toast.show({ message, variant: "error" })
       }
     }
-    ctx.keymap.layer(() => ({ commands: [{ id: "ronigooja.agents.manage", title: "Agents: manage", palette: true, run: manage }] }))
+    ctx.keymap.layer(() => ({ mode: "global", commands: [{ id: "ronigooja.agents.manage", title: "Agents: manage", palette: true, run: manage }] }))
   },
 })
